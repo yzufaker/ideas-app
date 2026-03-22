@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#E8943A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="灵感箱">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+  <title>灵感收集箱</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FDF6E3;
+      --card: #FFFDF5;
+      --primary: #E8943A;
+      --primary-light: #FFF0DC;
+      --accent: #7C6E57;
+      --text: #3D3225;
+      --text-light: #8B7D6B;
+      --border: #EDE3D0;
+      --success: #5BAE7A;
+      --shadow: 0 2px 12px rgba(61,50,37,0.08);
+      --shadow-hover: 0 6px 24px rgba(61,50,37,0.14);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg);
+      padding: 20px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      font-family: 'ZCOOL XiaoWei', serif;
+      font-size: 26px;
+      color: var(--text);
+      letter-spacing: 2px;
+    }
+    .header p {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-top: 2px;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex; gap: 10px; overflow-x: auto;
+      padding: 12px 20px;
+      scrollbar-width: none;
+    }
+    .stats-bar::-webkit-scrollbar { display: none; }
+    .stat-chip {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: var(--text-light);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .stat-chip .num {
+      font-weight: 600; color: var(--primary);
+      font-size: 14px;
+    }
+    .stat-chip.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .stat-chip.active .num { color: white; }
+
+    /* Idea list */
+    .idea-list {
+      padding: 10px 16px 120px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .idea-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .idea-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+    .idea-card::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 4px;
+      border-radius: 4px 0 0 4px;
+    }
+    .idea-card.cat-teaching::before { background: #5BAE7A; }
+    .idea-card.cat-tool::before { background: #4A90D9; }
+    .idea-card.cat-life::before { background: #E8943A; }
+    .idea-card.cat-work::before { background: #9B6FCC; }
+    .idea-card.cat-other::before { background: #aaa; }
+
+    .idea-text {
+      font-size: 14px; line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+
+    .idea-tags {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;
+    }
+    .tag {
+      font-size: 11px;
+      border-radius: 6px;
+      padding: 2px 8px;
+      border: 1px solid;
+    }
+    .tag.ai-tag {
+      background: var(--primary-light);
+      border-color: #E8943A40;
+      color: #C07820;
+    }
+    .tag.user-tag {
+      background: #F0F0F0;
+      border-color: #DDD;
+      color: #777;
+    }
+    .tag.type-tag {
+      background: #F3E5F5;
+      border-color: #E1BEE7;
+      color: #7B1FA2;
+      font-weight: 500;
+    }
+    .tag.quadrant-tag {
+      font-weight: 500;
+    }
+    .tag.quadrant-tag.q1 { background: #FFE5E5; border-color: #FFCDD2; color: #C62828; }
+    .tag.quadrant-tag.q2 { background: #FFF8DC; border-color: #FFF59D; color: #F9A825; }
+    .tag.quadrant-tag.q3 { background: #FFF0E5; border-color: #FFCCBC; color: #E64A19; }
+    .tag.quadrant-tag.q4 { background: #E8F5E9; border-color: #C8E6C9; color: #2E7D32; }
+    .tag .ai-badge {
+      font-size: 9px;
+      background: var(--primary);
+      color: white;
+      border-radius: 4px;
+      padding: 0 4px;
+      margin-right: 3px;
+    }
+
+    .idea-meta {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .idea-time { font-size: 11px; color: var(--text-light); }
+    .idea-reminder {
+      display: flex; align-items: center; gap: 3px;
+      font-size: 11px; color: var(--success);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-light);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 14px; }
+    .empty-state p { font-size: 14px; }
+
+    /* FAB - Record button */
+    .fab {
+      position: fixed; bottom: 28px; right: 24px;
+      width: 60px; height: 60px;
+      background: var(--primary);
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(232,148,58,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s;
+      z-index: 200;
+    }
+    .fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(232,148,58,0.5); }
+    .fab:active { transform: scale(0.95); }
+    .fab svg { width: 28px; height: 28px; fill: white; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(61,50,37,0.45);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card);
+      border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 500px;
+      max-height: 90dvh;
+      overflow-y: auto;
+      padding: 24px 20px 28px;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .modal h2 {
+      font-family: 'ZCOOL XiaoWei', serif;
+      font-size: 22px; margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    /* Voice button */
+    .voice-section { text-align: center; margin-bottom: 20px; }
+    .voice-btn {
+      width: 72px; height: 72px;
+      background: var(--primary);
+      border-radius: 50%;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 10px;
+      box-shadow: 0 4px 16px rgba(232,148,58,0.35);
+      transition: all 0.2s;
+      position: relative;
+    }
+    .voice-btn:hover { transform: scale(1.05); }
+    .voice-btn.recording {
+      background: #D1453A;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(209,69,58,0.4); }
+      50% { box-shadow: 0 0 0 16px rgba(209,69,58,0); }
+    }
+    .voice-btn svg { width: 30px; height: 30px; fill: white; }
+    .voice-status { font-size: 13px; color: var(--text-light); min-height: 20px; }
+
+    /* Text input */
+    .input-group { margin-bottom: 14px; }
+    .input-group label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--text-light); margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .text-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 15px;
+      font-family: 'Noto Sans SC', sans-serif;
+      color: var(--text);
+      resize: none;
+      min-height: 90px;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .text-input:focus { border-color: var(--primary); }
+
+    /* Category selector */
+    .category-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin-bottom: 6px;
+    }
+    .cat-btn {
+      padding: 8px 6px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      color: var(--text-light);
+      font-family: 'Noto Sans SC', sans-serif;
+    }
+    .cat-btn .cat-emoji { font-size: 20px; display: block; margin-bottom: 2px; }
+    .cat-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+    .ai-suggest {
+      font-size: 11px; color: var(--primary);
+      margin-bottom: 8px; min-height: 16px;
+    }
+
+    /* Content Type */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .type-btn {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .type-btn:hover { border-color: var(--primary); }
+    .type-btn.selected { border-color: var(--primary); background: var(--primary-light); }
+    .type-btn .type-emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+    .type-btn .type-name { font-size: 13px; font-weight: 500; color: var(--text); display: block; }
+    .type-btn .type-desc { font-size: 10px; color: var(--text-light); margin-top: 2px; }
+    .ai-type-result {
+      font-size: 12px;
+      color: var(--primary);
+      padding: 6px 0;
+    }
+
+    /* Quadrant Section */
+    .quadrant-section { margin-top: 4px; }
+    .quadrant-note {
+      font-size: 10px;
+      color: var(--text-light);
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    /* Priority Analysis */
+    .priority-analyze-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-family: 'Noto Sans SC', sans-serif;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      margin-bottom: 10px;
+    }
+    .priority-analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+    .priority-analyze-btn:active { transform: scale(0.98); }
+    .priority-result {
+      font-size: 12px;
+      color: var(--text);
+      padding: 8px 10px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .priority-result.show { display: block; }
+
+    .quadrant-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .quadrant {
+      padding: 12px 8px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .quadrant.q1 { background: #FFE5E5; }
+    .quadrant.q2 { background: #FFF8DC; }
+    .quadrant.q3 { background: #FFF0E5; }
+    .quadrant.q4 { background: #E8F5E9; }
+    .quadrant:hover { transform: scale(1.02); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .quadrant.selected { border-color: var(--text); box-shadow: 0 2px 12px rgba(0,0,0,0.12); }
+    .quadrant .q-emoji { font-size: 20px; margin-bottom: 4px; }
+    .quadrant .q-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .quadrant .q-action { font-size: 11px; color: var(--text-light); font-weight: 400; }
+
+    /* Reminder */
+    .reminder-row {
+      display: flex; gap: 10px; align-items: center;
+      margin-bottom: 20px;
+    }
+    .reminder-toggle {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; font-size: 13px; color: var(--text);
+    }
+    .toggle {
+      width: 42px; height: 24px;
+      background: var(--border);
+      border-radius: 12px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--primary); }
+    .toggle::after {
+      content: ''; position: absolute;
+      width: 18px; height: 18px;
+      background: white; border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: left 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .toggle.on::after { left: 21px; }
+    .datetime-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: 'Noto Sans SC', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .datetime-input:focus { border-color: var(--primary); }
+
+    /* Save button */
+    .save-btn {
+      width: 100%; padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 600;
+      font-family: 'Noto Sans SC', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+    .save-btn:hover { background: #D4822E; }
+    .save-btn:active { transform: scale(0.98); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 100px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 400;
+      animation: fadeUp 0.3s ease;
+      pointer-events: none;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* Confirm dialog */
+    .confirm-overlay {
+      position: fixed; inset: 0;
+      background: rgba(61,50,37,0.4);
+      backdrop-filter: blur(4px);
+      z-index: 350;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 300px; width: 100%;
+      text-align: center;
+    }
+    .confirm-box h3 { font-size: 16px; margin-bottom: 8px; }
+    .confirm-box p { font-size: 13px; color: var(--text-light); margin-bottom: 20px; }
+    .confirm-btns { display: flex; gap: 10px; }
+    .confirm-btns button {
+      flex: 1; padding: 10px;
+      border-radius: 10px; font-size: 14px;
+      font-family: 'Noto Sans SC', sans-serif;
+      cursor: pointer; border: none;
+      transition: all 0.2s;
+    }
+    .confirm-cancel { background: var(--bg); color: var(--text); }
+    .confirm-ok { background: #D1453A; color: white; }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>随记</h1>
+  <p>灵感、计划、备忘，随时记录</p>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat-chip active" data-filter="all">
+    <span>全部</span><span class="num" id="countAll">0</span>
+  </div>
+  <div class="stat-chip" data-filter="q1">
+    <span>🔴 重要紧急</span><span class="num" id="countQ1">0</span>
+  </div>
+  <div class="stat-chip" data-filter="q2">
+    <span>🟡 重要不急</span><span class="num" id="countQ2">0</span>
+  </div>
+  <div class="stat-chip" data-filter="idea">
+    <span>💡 灵感</span><span class="num" id="countIdea">0</span>
+  </div>
+  <div class="stat-chip" data-filter="plan">
+    <span>📅 计划</span><span class="num" id="countPlan">0</span>
+  </div>
+  <div class="stat-chip" data-filter="memo">
+    <span>📝 备忘</span><span class="num" id="countMemo">0</span>
+  </div>
+</div>
+
+<div class="idea-list" id="ideaList">
+  <div class="empty-state" id="emptyState">
+    <div class="icon">💡</div>
+    <p>还没有灵感，点下方按钮记录第一个吧</p>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openModal()" aria-label="记录灵感">
+  <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+</button>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalTitle">记录灵感</h2>
+
+    <div class="voice-section">
+      <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">
+        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15A.997.997 0 0 0 6.09 11H3v10h3.09c.08.49.49.85.98.85 1.66 0 3-1.34 3-3s-1.34-3-3-3zM12 18c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+      </button>
+      <div class="voice-status" id="voiceStatus">点击录音，说完自动转文字</div>
+    </div>
+
+    <div class="input-group">
+      <label>灵感内容</label>
+      <textarea class="text-input" id="ideaText" placeholder="写下你的想法…" rows="3"></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>优先级</label>
+      <div class="quadrant-section">
+        <button class="priority-analyze-btn" onclick="analyzePriority()">
+          <span>🧠</span> AI 分析重要性和紧急度
+        </button>
+        <div class="priority-result" id="priorityResult"></div>
+        <div class="quadrant-grid" id="quadrantGrid">
+          <div class="quadrant q1" onclick="setQuadrant(1)">
+            <div class="q-emoji">🔴</div>
+            <div class="q-label">重要且紧急</div>
+            <div class="q-action">优先处理</div>
+          </div>
+          <div class="quadrant q2" onclick="setQuadrant(2)">
+            <div class="q-emoji">🟡</div>
+            <div class="q-label">重要不紧急</div>
+            <div class="q-action">安排时间</div>
+          </div>
+          <div class="quadrant q3" onclick="setQuadrant(3)">
+            <div class="q-emoji">🟠</div>
+            <div class="q-label">紧急不重要</div>
+            <div class="q-action">可交给别人</div>
+          </div>
+          <div class="quadrant q4" onclick="setQuadrant(4)">
+            <div class="q-emoji">🟢</div>
+            <div class="q-label">不重要不紧急</div>
+            <div class="q-action">有空再说</div>
+          </div>
+        </div>
+        <div class="quadrant-note">点击选择，或让 AI 帮你判断</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>内容类型</label>
+      <div class="type-grid">
+        <button class="type-btn" data-type="idea" onclick="selectType('idea')">
+          <span class="type-emoji">💡</span>
+          <span class="type-name">灵感</span>
+          <span class="type-desc">一闪而过的创意</span>
+        </button>
+        <button class="type-btn" data-type="plan" onclick="selectType('plan')">
+          <span class="type-emoji">📅</span>
+          <span class="type-name">计划</span>
+          <span class="type-desc">要做的事</span>
+        </button>
+        <button class="type-btn" data-type="memo" onclick="selectType('memo')">
+          <span class="type-emoji">📝</span>
+          <span class="type-name">备忘</span>
+          <span class="type-desc">怕忘的事</span>
+        </button>
+        <button class="type-btn" onclick="analyzeType()">
+          <span class="type-emoji">🤖</span>
+          <span class="type-name">AI判断</span>
+          <span class="type-desc">自动识别类型</span>
+        </button>
+      </div>
+      <div class="ai-type-result" id="aiTypeResult"></div>
+    </div>
+
+    <div class="input-group">
+      <label>分类</label>
+      <div class="category-grid">
+        <button class="cat-btn" data-cat="teaching" onclick="selectCat('teaching')">
+          <span class="cat-emoji">📚</span>教学
+        </button>
+        <button class="cat-btn" data-cat="tool" onclick="selectCat('tool')">
+          <span class="cat-emoji">🛠️</span>工具
+        </button>
+        <button class="cat-btn" data-cat="life" onclick="selectCat('life')">
+          <span class="cat-emoji">🌿</span>生活
+        </button>
+        <button class="cat-btn" data-cat="work" onclick="selectCat('work')">
+          <span class="cat-emoji">💼</span>工作
+        </button>
+        <button class="cat-btn" data-cat="other" onclick="selectCat('other')">
+          <span class="cat-emoji">✨</span>其他
+        </button>
+        <button class="cat-btn" onclick="requestAICat()">
+          <span class="cat-emoji">🤖</span>AI推荐
+        </button>
+      </div>
+      <div class="ai-suggest" id="aiSuggest"></div>
+    </div>
+
+    <div class="input-group">
+      <label>提醒</label>
+      <div class="reminder-row">
+        <label class="reminder-toggle" onclick="toggleReminder()">
+          <div class="toggle" id="reminderToggle"></div>
+          <span id="reminderLabel">设置提醒</span>
+        </label>
+        <input type="datetime-local" class="datetime-input" id="reminderTime" style="display:none">
+      </div>
+    </div>
+
+    <button class="save-btn" id="saveBtn" onclick="saveIdea()">保存</button>
+  </div>
+</div>
+
+<!-- Confirm delete dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>删除灵感？</h3>
+    <p>删除后无法恢复，确定要删除这条灵感吗？</p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">取消</button>
+      <button class="confirm-ok" onclick="doDelete()">删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // State
+  let ideas = [];
+  let currentFilter = 'all';
+  let editingId = null;
+  let deleteTarget = null;
+  let selectedCat = '';
+  let reminderOn = false;
+  let mediaRecorder = null;
+  let audioBlob = null;
+  let isRecording = false;
+  let recognition = null;
+
+  const CATS = { teaching:'📚 教学', tool:'🛠️ 工具', life:'🌿 生活', work:'💼 工作', other:'✨ 其他' };
+  const QUADRANTS = {
+    1: { label: '🔴 重要且紧急', action: '优先处理', color: '#E53935' },
+    2: { label: '🟡 重要不紧急', action: '安排时间', color: '#F9A825' },
+    3: { label: '🟠 紧急不重要', action: '可交给别人', color: '#FF7043' },
+    4: { label: '🟢 不重要不紧急', action: '有空再说', color: '#43A047' }
+  };
+  const TYPES = {
+    idea: { emoji: '💡', name: '灵感', desc: '一闪而过的创意' },
+    plan: { emoji: '📅', name: '计划', desc: '要做的事' },
+    memo: { emoji: '📝', name: '备忘', desc: '怕忘的事' }
+  };
+  let selectedQuadrant = null;
+  let selectedType = null;
+  let aiSuggestedType = null;
+  let aiSuggestedQuadrant = null;
+
+  // Init
+  window.onload = () => {
+    loadIdeas();
+    renderIdeas();
+    initVoice();
+  };
+
+  function loadIdeas() {
+    try { ideas = JSON.parse(localStorage.getItem('ideas') || '[]'); }
+    catch { ideas = []; }
+  }
+
+  function saveIdeasToStorage() {
+    localStorage.setItem('ideas', JSON.stringify(ideas));
+  }
+
+  // Render
+  function renderIdeas() {
+    updateCounts();
+    const list = document.getElementById('ideaList');
+    let filtered = ideas;
+    
+    if (currentFilter === 'q1') filtered = ideas.filter(i => i.quadrant === 1);
+    else if (currentFilter === 'q2') filtered = ideas.filter(i => i.quadrant === 2);
+    else if (currentFilter === 'idea') filtered = ideas.filter(i => i.type === 'idea' || !i.type);
+    else if (currentFilter === 'plan') filtered = ideas.filter(i => i.type === 'plan');
+    else if (currentFilter === 'memo') filtered = ideas.filter(i => i.type === 'memo');
+
+    if (filtered.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">💡</div><p>${currentFilter === 'all' ? '还没有内容，点下方按钮开始' : '这个分类下还没有内容'}</p></div>`;
+      return;
+    }
+
+    // Sort by quadrant priority (1 > 2 > 3 > 4 > none)
+    filtered.sort((a, b) => {
+      const qa = a.quadrant || 5;
+      const qb = b.quadrant || 5;
+      return qa - qb || new Date(b.created) - new Date(a.created);
+    });
+
+    list.innerHTML = filtered.map(idea => `
+      <div class="idea-card cat-${idea.cat || 'other'}" onclick="openIdea('${idea.id}')">
+        <div class="idea-text">${escapeHtml(idea.text)}</div>
+        <div class="idea-tags">
+          ${idea.type ? `<span class="tag type-tag">${TYPES[idea.type]?.emoji || '💡'} ${TYPES[idea.type]?.name || '灵感'}</span>` : ''}
+          <span class="tag ${idea.catSource === 'ai' ? 'ai-tag' : 'user-tag'}">
+            ${idea.catSource === 'ai' ? '<span class="ai-badge">AI</span>' : ''}${CATS[idea.cat] || idea.cat}
+          </span>
+          ${idea.quadrant ? `<span class="tag quadrant-tag q${idea.quadrant}">${QUADRANTS[idea.quadrant].label}</span>` : ''}
+          ${(idea.userTags || []).map(t => `<span class="tag user-tag">${escapeHtml(t)}</span>`).join('')}
+        </div>
+        <div class="idea-meta">
+          <span class="idea-time">${formatTime(idea.created)}</span>
+          ${idea.reminder ? `<span class="idea-reminder">🔔 ${formatTime(idea.reminder)}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function updateCounts() {
+    document.getElementById('countAll').textContent = ideas.length;
+    document.getElementById('countQ1').textContent = ideas.filter(i => i.quadrant === 1).length;
+    document.getElementById('countQ2').textContent = ideas.filter(i => i.quadrant === 2).length;
+    document.getElementById('countIdea').textContent = ideas.filter(i => i.type === 'idea' || !i.type).length;
+    document.getElementById('countPlan').textContent = ideas.filter(i => i.type === 'plan').length;
+    document.getElementById('countMemo').textContent = ideas.filter(i => i.type === 'memo').length;
+  }
+
+  // Filters
+  document.getElementById('statsBar').addEventListener('click', e => {
+    const chip = e.target.closest('.stat-chip');
+    if (!chip) return;
+    document.querySelectorAll('.stat-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderIdeas();
+  });
+
+  // Modal
+  function openModal(ideaId) {
+    editingId = ideaId || null;
+    const modal = document.querySelector('.modal');
+    document.getElementById('modalTitle').textContent = ideaId ? '查看 / 编辑' : '记录';
+    document.getElementById('ideaText').value = '';
+    selectedCat = '';
+    reminderOn = false;
+    document.getElementById('reminderToggle').classList.remove('on');
+    document.getElementById('reminderTime').style.display = 'none';
+    document.getElementById('reminderLabel').textContent = '设置提醒';
+    document.getElementById('aiSuggest').textContent = '';
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('saveBtn').textContent = ideaId ? '更新' : '保存';
+    selectedQuadrant = null;
+    selectedType = null;
+    aiSuggestedType = null;
+    aiSuggestedQuadrant = null;
+    document.getElementById('priorityResult').classList.remove('show');
+    document.getElementById('priorityResult').innerHTML = '';
+    document.querySelectorAll('.quadrant').forEach(q => q.classList.remove('selected'));
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('aiTypeResult').textContent = '';
+
+    if (ideaId) {
+      const idea = ideas.find(i => i.id === ideaId);
+      if (idea) {
+        document.getElementById('ideaText').value = idea.text;
+        selectedCat = idea.cat || '';
+        document.querySelector(`.cat-btn[data-cat="${selectedCat}"]`)?.classList.add('selected');
+        selectedType = idea.type || null;
+        if (selectedType) {
+          document.querySelector(`.type-btn[data-type="${selectedType}"]`)?.classList.add('selected');
+        }
+        if (idea.quadrant) {
+          selectedQuadrant = idea.quadrant;
+          document.querySelectorAll('.quadrant').forEach(q => q.classList.remove('selected'));
+          document.querySelector(`.quadrant.q${idea.quadrant}`)?.classList.add('selected');
+          document.getElementById('priorityResult').classList.add('show');
+          document.getElementById('priorityResult').innerHTML = `AI判断：${QUADRANTS[idea.quadrant].label} — ${QUADRANTS[idea.quadrant].action}`;
+        }
+        if (idea.reminder) {
+          reminderOn = true;
+          document.getElementById('reminderToggle').classList.add('on');
+          document.getElementById('reminderTime').style.display = 'block';
+          document.getElementById('reminderTime').value = idea.reminder.slice(0,16);
+          document.getElementById('reminderLabel').textContent = '已设置';
+        }
+      }
+    }
+
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('ideaText').focus(), 300);
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    stopVoice();
+  }
+
+  function openIdea(id) { openModal(id); }
+
+  // Category
+  function selectCat(cat) {
+    selectedCat = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelector(`.cat-btn[data-cat="${cat}"]`)?.classList.add('selected');
+    document.getElementById('aiSuggest').textContent = '';
+  }
+
+  async function requestAICat() {
+    const text = document.getElementById('ideaText').value.trim();
+    if (!text) { showToast('请先输入灵感内容'); return; }
+    const el = document.getElementById('aiSuggest');
+    el.innerHTML = '<span class="spinner"></span>AI 正在分析…';
+    try {
+      // Simulate AI response for demo - in production this would call the actual API
+      await new Promise(r => setTimeout(r, 800));
+      const cats = ['teaching','tool','life','work','other'];
+      const cat = cats[Math.floor(Math.random() * cats.length)];
+      selectedCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+      document.querySelector(`.cat-btn[data-cat="${cat}"]`)?.classList.add('selected');
+      const catNames = { teaching:'📚 教学', tool:'🛠️ 工具', life:'🌿 生活', work:'💼 工作', other:'✨ 其他' };
+      el.textContent = `🤖 AI 推荐：「${catNames[cat]}」`;
+    } catch {
+      el.textContent = '';
+      showToast('AI 分类暂时不可用');
+    }
+  }
+
+  // Type selection
+  function selectType(type) {
+    selectedType = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelector(`.type-btn[data-type="${type}"]`)?.classList.add('selected');
+    document.getElementById('aiTypeResult').textContent = '';
+    
+    // Track if user changed from AI suggestion (for learning)
+    if (aiSuggestedType && aiSuggestedType !== type) {
+      recordLearning('type', document.getElementById('ideaText').value, aiSuggestedType, type);
+    }
+  }
+
+  async function analyzeType() {
+    const text = document.getElementById('ideaText').value.trim();
+    if (!text) { showToast('请先输入内容'); return; }
+    
+    const resultEl = document.getElementById('aiTypeResult');
+    resultEl.innerHTML = '<span class="spinner"></span>AI 正在识别内容类型…';
+    
+    try {
+      // Simulate AI analysis - in production call actual AI API
+      await new Promise(r => setTimeout(r, 600));
+      
+      // Simple keyword-based analysis for demo
+      const planKeywords = ['明天', '下周', '周末', '安排', '计划', '会议', '约会', '提醒', '要', '去', '买', '做', '周', '号'];
+      const memoKeywords = ['别忘了', '记得', '别忘了', '备忘', '怕忘', '要带', '要买'];
+      
+      let type;
+      const planScore = planKeywords.filter(k => text.includes(k)).length;
+      const memoScore = memoKeywords.filter(k => text.includes(k)).length;
+      
+      if (memoScore > planScore && memoScore > 0) type = 'memo';
+      else if (planScore > 0) type = 'plan';
+      else type = 'idea';
+      
+      aiSuggestedType = type;
+      selectedType = type;
+      
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+      document.querySelector(`.type-btn[data-type="${type}"]`)?.classList.add('selected');
+      
+      resultEl.innerHTML = `🤖 AI 判断：${TYPES[type].emoji} ${TYPES[type].name} <span style="color:var(--text-light)">— ${TYPES[type].desc}</span>`;
+      
+    } catch (e) {
+      resultEl.textContent = '识别失败，请手动选择';
+    }
+  }
+
+  // Learning tracker - saves corrections for AI improvement
+  function recordLearning(field, text, aiSuggestion, userChoice) {
+    const learnings = JSON.parse(localStorage.getItem('ai-learnings') || '[]');
+    learnings.push({
+      timestamp: Date.now(),
+      field,
+      text: text.slice(0, 100),
+      aiSuggested: aiSuggestion,
+      userCorrected: userChoice
+    });
+    // Keep only last 100 learnings
+    if (learnings.length > 100) learnings.shift();
+    localStorage.setItem('ai-learnings', JSON.stringify(learnings));
+  }
+
+  // Priority analysis
+  async function analyzePriority() {
+    const text = document.getElementById('ideaText').value.trim();
+    if (!text) { showToast('请先输入灵感内容'); return; }
+    
+    const resultEl = document.getElementById('priorityResult');
+    const gridEl = document.getElementById('quadrantGrid');
+    
+    resultEl.innerHTML = '<span class="spinner"></span>AI 正在分析重要性和紧急度…';
+    resultEl.classList.add('show');
+    
+    try {
+      // Simulate AI analysis - in production call actual AI API
+      await new Promise(r => setTimeout(r, 1200));
+      
+      // Simple keyword-based analysis for demo
+      const importantKeywords = ['重要', '关键', '核心', '必须', 'deadline', '截止', '考试', '会议', '汇报', '项目'];
+      const urgentKeywords = ['紧急', '马上', '立刻', '今天', '明天', ' ASAP', '快速', '现在', '赶紧'];
+      
+      const isImportant = importantKeywords.some(k => text.includes(k)) || Math.random() > 0.5;
+      const isUrgent = urgentKeywords.some(k => text.includes(k)) || Math.random() > 0.5;
+      
+      let quadrant;
+      if (isImportant && isUrgent) quadrant = 1;
+      else if (isImportant && !isUrgent) quadrant = 2;
+      else if (!isImportant && isUrgent) quadrant = 3;
+      else quadrant = 4;
+      
+      aiSuggestedQuadrant = quadrant;
+      selectedQuadrant = quadrant;
+      aiSuggestedQuadrant = quadrant;
+      
+      resultEl.innerHTML = `
+        <div style="margin-bottom:6px;"><strong>AI 分析结果：</strong></div>
+        <div style="display:flex;gap:12px;margin-bottom:8px;">
+          <span style="padding:3px 8px;border-radius:6px;background:${isImportant?'#E3F2FD':'#FAFAFA'};font-size:12px;">
+            ${isImportant ? '⭐' : '○'} ${isImportant ? '重要' : '不重要'}
+          </span>
+          <span style="padding:3px 8px;border-radius:6px;background:${isUrgent?'#FFF3E0':'#FAFAFA'};font-size:12px;">
+            ${isUrgent ? '⚡' : '○'} ${isUrgent ? '紧急' : '不紧急'}
+          </span>
+        </div>
+        <div style="font-size:13px;color:${QUADRANTS[quadrant].color};font-weight:500;">
+          → ${QUADRANTS[quadrant].label}（${QUADRANTS[quadrant].action}）
+        </div>
+      `;
+      
+      document.querySelectorAll('.quadrant').forEach(q => q.classList.remove('selected'));
+      document.querySelector(`.quadrant.q${quadrant}`)?.classList.add('selected');
+      
+    } catch (e) {
+      resultEl.innerHTML = '分析失败，请重试';
+    }
+  }
+
+  function setQuadrant(q) {
+    selectedQuadrant = q;
+    document.querySelectorAll('.quadrant').forEach(qu => qu.classList.remove('selected'));
+    document.querySelector(`.quadrant.q${q}`)?.classList.add('selected');
+    
+    // Track if user changed from AI suggestion (for learning)
+    if (aiSuggestedQuadrant && aiSuggestedQuadrant !== q) {
+      recordLearning('quadrant', document.getElementById('ideaText').value, aiSuggestedQuadrant, q);
+    }
+  }
+
+  // Reminder toggle
+  function toggleReminder() {
+    reminderOn = !reminderOn;
+    const tog = document.getElementById('reminderToggle');
+    const timeInput = document.getElementById('reminderTime');
+    const label = document.getElementById('reminderLabel');
+    if (reminderOn) {
+      tog.classList.add('on');
+      timeInput.style.display = 'block';
+      // Default: tomorrow same time
+      const d = new Date(); d.setDate(d.getDate()+1);
+      timeInput.value = d.toISOString().slice(0,16);
+      label.textContent = '已开启';
+    } else {
+      tog.classList.remove('on');
+      timeInput.style.display = 'none';
+      label.textContent = '设置提醒';
+    }
+  }
+
+  // Save
+  function saveIdea() {
+    const text = document.getElementById('ideaText').value.trim();
+    if (!text) { showToast('请输入灵感内容'); return; }
+    const reminderVal = reminderOn ? document.getElementById('reminderTime').value : null;
+
+    if (editingId) {
+      const idx = ideas.findIndex(i => i.id === editingId);
+      if (idx > -1) {
+        // Track if user changed AI suggestions (for learning)
+        if (aiSuggestedType && selectedType !== ideas[idx].type && selectedType !== aiSuggestedType) {
+          recordLearning('type', text, aiSuggestedType, selectedType);
+        }
+        if (aiSuggestedQuadrant && selectedQuadrant !== ideas[idx].quadrant && selectedQuadrant !== aiSuggestedQuadrant) {
+          recordLearning('quadrant', text, aiSuggestedQuadrant, selectedQuadrant);
+        }
+        
+        ideas[idx] = { 
+          ...ideas[idx], 
+          text, 
+          cat: selectedCat || ideas[idx].cat, 
+          catSource: selectedCat ? 'user' : ideas[idx].catSource,
+          type: selectedType || ideas[idx].type,
+          quadrant: selectedQuadrant || ideas[idx].quadrant, 
+          reminder: reminderVal 
+        };
+      }
+      showToast('已更新 ✨');
+    } else {
+      const idea = {
+        id: Date.now().toString(),
+        text, 
+        cat: selectedCat || 'other', 
+        catSource: selectedCat ? 'user' : 'ai',
+        type: selectedType || 'idea',
+        quadrant: selectedQuadrant,
+        created: new Date().toISOString(),
+        reminder: reminderVal,
+        done: false
+      };
+      ideas.unshift(idea);
+      showToast('已保存 🎉');
+    }
+
+    saveIdeasToStorage();
+    renderIdeas();
+    closeModal();
+
+    // Register reminder with backend if set
+    if (reminderVal) {
+      registerReminder(reminderVal, text);
+    }
+  }
+
+  async function registerReminder(timeISO, text) {
+    try {
+      await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ time: timeISO, text: text.slice(0, 50), wechatId: 'Cmfybt' })
+      });
+    } catch(e) { /* silently fail - reminders stored locally */ }
+  }
+
+  // Long press to delete
+  let longPressTimer = null;
+  let longPressTarget = null;
+
+  document.getElementById('ideaList').addEventListener('touchstart', e => {
+    const card = e.target.closest('.idea-card');
+    if (!card) return;
+    longPressTarget = card;
+    longPressTimer = setTimeout(() => {
+      const id = card.getAttribute('onclick')?.match(/'(\d+)'/)?.[1] || card.querySelector('[onclick]')?.getAttribute('onclick')?.match(/'(\d+)'/)?.[1];
+      if (id) { deleteTarget = id; document.getElementById('confirmOverlay').classList.add('open'); }
+    }, 600);
+  }, { passive: true });
+
+  document.getElementById('ideaList').addEventListener('touchend', () => { clearTimeout(longPressTimer); });
+  document.getElementById('ideaList').addEventListener('touchmove', () => { clearTimeout(longPressTimer); });
+
+  function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); deleteTarget = null; }
+
+  function doDelete() {
+    if (deleteTarget) {
+      ideas = ideas.filter(i => i.id !== deleteTarget);
+      saveIdeasToStorage();
+      renderIdeas();
+      showToast('已删除');
+    }
+    closeConfirm();
+  }
+
+  // Voice
+  function initVoice() {
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!window.SpeechRecognition) {
+      document.getElementById('voiceStatus').textContent = '浏览器不支持语音识别，请用 Safari 或 Chrome';
+    }
+    recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = e => {
+      const text = [...e.results].map(r => r[0].transcript).join('');
+      document.getElementById('ideaText').value = text;
+    };
+    recognition.onend = () => { if (isRecording) recognition.start(); };
+    recognition.onerror = () => {
+      isRecording = false;
+      document.getElementById('voiceBtn').classList.remove('recording');
+      document.getElementById('voiceStatus').textContent = '语音出错，重新试试';
+    };
+  }
+
+  function toggleVoice() {
+    if (!recognition) { showToast('语音不支持，请用 Chrome 或 Safari'); return; }
+    if (isRecording) {
+      recognition.stop();
+      isRecording = false;
+      document.getElementById('voiceBtn').classList.remove('recording');
+      document.getElementById('voiceStatus').textContent = '松开停止，继续说话自动继续';
+    } else {
+      try { recognition.start(); } catch(e) { recognition = null; initVoice(); try { recognition.start(); } catch(e2) { showToast('语音启动失败'); return; } }
+      isRecording = true;
+      document.getElementById('voiceBtn').classList.add('recording');
+      document.getElementById('voiceStatus').textContent = '正在录音… 说完稍等自动停止';
+    }
+  }
+
+  function stopVoice() {
+    if (recognition && isRecording) {
+      recognition.stop();
+      isRecording = false;
+      document.getElementById('voiceBtn').classList.remove('recording');
+    }
+  }
+
+  // Utils
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function formatTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return '刚刚';
+    if (diffMin < 60) return `${diffMin}分钟前`;
+    if (diffMin < 1440) return `${Math.floor(diffMin/60)}小时前`;
+    if (diffMin < 10080) return `${Math.floor(diffMin/1440)}天前`;
+    return d.toLocaleDateString('zh-CN', { month:'short', day:'numeric' });
+  }
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+  }
+
+  // Service Worker registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(e => console.log('SW failed', e));
+  }
+
+  // Add to Home Screen prompt
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show install button or banner
+    showInstallBanner();
+  });
+
+  function showInstallBanner() {
+    if (localStorage.getItem('pwa-install-dismissed')) return;
+    const banner = document.createElement('div');
+    banner.id = 'install-banner';
+    banner.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:var(--primary);color:white;padding:14px 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:250;animation:fadeUp .3s ease;font-size:14px;box-shadow:0 4px 16px rgba(232,148,58,0.4);';
+    banner.innerHTML = `
+      <span>📱 添加到主屏幕，离线也能用</span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="dismissInstall()" style="background:transparent;border:none;color:white;opacity:.7;font-size:12px;cursor:pointer;">稍后</button>
+        <button onclick="installPWA()" style="background:white;color:var(--primary);border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;">安装</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+  }
+
+  window.installPWA = async () => {
+    if (!deferredPrompt) { showToast('请在浏览器菜单里选择「添加到主屏幕」'); return; }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') showToast('安装成功 🎉');
+    deferredPrompt = null;
+    document.getElementById('install-banner')?.remove();
+  };
+
+  window.dismissInstall = () => {
+    document.getElementById('install-banner')?.remove();
+    localStorage.setItem('pwa-install-dismissed', '1');
+  };
+</script>
+</body>
+</html>
